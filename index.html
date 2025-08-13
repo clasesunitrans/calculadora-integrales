@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Integrales</title>
+    
+    <!-- Tailwind CSS para un diseño rápido y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter para una mejor legibilidad -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- MathJax para renderizar fórmulas LaTeX de forma elegante -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+
+    <style>
+        /* Estilos personalizados */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Un blanco ligeramente grisáceo */
+        }
+
+        /* Colores personalizados de la paleta */
+        .bg-brand-orange { background-color: #f97316; }
+        .hover\:bg-brand-orange-dark:hover { background-color: #ea580c; }
+        .text-brand-blue { color: #1e3a8a; }
+        .border-brand-blue { border-color: #1e3a8a; }
+        .ring-brand-orange:focus { ring-color: #f97316; }
+
+        /* ---- CORRECCIÓN: Estilos de impresión mejorados ---- */
+        @media print {
+            /* Primero, oculta todo el contenido del body por defecto */
+            body * {
+                visibility: hidden;
+            }
+            
+            /* Luego, hace visible únicamente la sección de fórmulas y todo su contenido */
+            #formulas-section, #formulas-section * {
+                visibility: visible;
+            }
+
+            /* Reposiciona la sección de fórmulas para que ocupe toda la página de impresión */
+            #formulas-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 1rem;
+            }
+
+            /* Oculta los elementos marcados como 'no-print' dentro de la sección de fórmulas (ej. el botón de imprimir) */
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="text-brand-blue">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        
+        <!-- Cabecera de la aplicación -->
+        <header class="text-center mb-8 md:mb-12 no-print">
+            <h1 class="text-4xl md:text-5xl font-bold text-brand-blue">Calculadora de Integrales</h1>
+            <p class="mt-2 text-lg text-slate-600">Ingresa una función y obtén la solución paso a paso.</p>
+        </header>
+
+        <!-- Sección principal: Entrada de la integral -->
+        <main class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 no-print">
+            <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+                <strong class="font-bold">Error:</strong>
+                <span class="block sm:inline">Por favor, ingresa una expresión matemática antes de continuar.</span>
+            </div>
+
+            <label for="expression" class="block text-lg font-semibold mb-2">Ingresa la expresión a integrar:</label>
+            <textarea id="expression" rows="3" class="w-full p-4 border-2 border-slate-300 rounded-lg text-lg text-slate-800 focus:ring-2 focus:ring-brand-orange focus:border-brand-orange transition-shadow" placeholder="Ej: x^2 * sin(x)"></textarea>
+
+            <!-- Campos para los límites de integración -->
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="limit-a" class="block text-md font-semibold mb-2">Límite inferior (a):</label>
+                    <input type="text" id="limit-a" class="w-full p-3 border-2 border-slate-300 rounded-lg text-slate-800 focus:ring-2 focus:ring-brand-orange focus:border-brand-orange" placeholder="Ej: 0">
+                </div>
+                <div>
+                    <label for="limit-b" class="block text-md font-semibold mb-2">Límite superior (b):</label>
+                    <input type="text" id="limit-b" class="w-full p-3 border-2 border-slate-300 rounded-lg text-slate-800 focus:ring-2 focus:ring-brand-orange focus:border-brand-orange" placeholder="Ej: pi">
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="mt-6 flex flex-col sm:flex-row gap-4">
+                <button id="solve-btn" class="w-full sm:w-auto flex-grow bg-brand-orange text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-brand-orange-dark transition-all transform hover:scale-105">
+                    Resolver con IA
+                </button>
+                <button id="clear-btn" class="w-full sm:w-auto bg-slate-200 text-slate-700 font-bold py-3 px-6 rounded-lg hover:bg-slate-300 transition-colors">
+                    Limpiar
+                </button>
+            </div>
+        </main>
+
+        <!-- Sección de Fórmulas -->
+        <section id="formulas-section" class="mt-12">
+            <div class="flex justify-between items-center mb-6 no-print">
+                <h2 class="text-3xl font-bold text-brand-blue">Formulario de Integrales</h2>
+                <button id="print-btn" class="bg-slate-700 text-white font-bold py-2 px-5 rounded-lg shadow-md hover:bg-slate-800 transition-all">
+                    Imprimir Fórmulas
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Tarjeta de Fórmulas de Cálculo 1 -->
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="text-xl font-bold mb-4 border-b-2 border-brand-orange pb-2">Integrales Comunes (Cálculo 1)</h3>
+                    <ul class="space-y-4 text-lg">
+                        <li>$ \int k \,dx = kx + C $</li>
+                        <li>$ \int x^n \,dx = \frac{x^{n+1}}{n+1} + C \quad (n \neq -1) $</li>
+                        <li>$ \int \frac{1}{x} \,dx = \ln|x| + C $</li>
+                        <li>$ \int e^x \,dx = e^x + C $</li>
+                        <li>$ \int b^x \,dx = \frac{b^x}{\ln b} + C $</li>
+                        <li>$ \int \cos x \,dx = \sin x + C $</li>
+                        <li>$ \int \sin x \,dx = -\cos x + C $</li>
+                        <li>$ \int \sec^2 x \,dx = \tan x + C $</li>
+                        <li>$ \int \sec x \tan x \,dx = \sec x + C $</li>
+                        <li>$ \int \csc^2 x \,dx = -\cot x + C $</li>
+                        <li>$ \int \csc x \cot x \,dx = -\csc x + C $</li>
+                        <li>$ \int \frac{dx}{\sqrt{1-x^2}} = \sin^{-1}x + C $</li>
+                        <li>$ \int \frac{dx}{1+x^2} = \tan^{-1}x + C $</li>
+                        <li>$ \int \frac{dx}{|x|\sqrt{x^2-1}} = \sec^{-1}x + C $</li>
+                    </ul>
+                </div>
+
+                <!-- Tarjeta de Fórmulas de Cálculo 2 -->
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="text-xl font-bold mb-4 border-b-2 border-sky-500 pb-2">Integrales Comunes (Cálculo 2)</h3>
+                    <ul class="space-y-4 text-lg">
+                        <li>$ \int \frac{dx}{ax+b} = \frac{1}{a} \ln|ax+b| + C $</li>
+                        <li>$ \int \tan x \,dx = \ln|\sec x| + C $</li>
+                        <li>$ \int \sec x \,dx = \ln|\sec x + \tan x| + C $</li>
+                        <li>$ \int \cot x \,dx = \ln|\sin x| + C $</li>
+                        <li>$ \int \csc x \,dx = -\ln|\csc x + \cot x| + C $</li>
+                        <li>$ \int \ln x \,dx = x \ln x - x + C $</li>
+                        <li>$ \int \tan^{-1}x \,dx = x \tan^{-1}x - \frac{1}{2}\ln(1+x^2) + C $</li>
+                        <li>$ \int \frac{dx}{\sqrt{a^2-x^2}} = \sin^{-1}(\frac{x}{a}) + C $</li>
+                        <li>$ \int \frac{dx}{a^2+x^2} = \frac{1}{a} \tan^{-1}(\frac{x}{a}) + C $</li>
+                    </ul>
+                </div>
+                
+                <!-- Tarjeta de Propiedades y Métodos -->
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="text-xl font-bold mb-4 border-b-2 border-emerald-500 pb-2">Propiedades y Métodos</h3>
+                    <ul class="space-y-4 text-lg">
+                        <li><strong class="text-base block">Integración por Partes:</strong> $ \int u \,dv = uv - \int v \,du $</li>
+                        <li><strong class="text-base block">Sustitución (u):</strong> $ \int f(g(x))g'(x) \,dx = \int f(u) \,du $</li>
+                         <li><strong class="text-base block">Regla de k:</strong> $ \int f(kx) \,dx = \frac{1}{k}F(kx) + C $</li>
+                        <li><strong class="text-base block">Teorema Fundamental:</strong> $ \int_a^b f(x) \,dx = F(b) - F(a) $</li>
+                    </ul>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // Script para la funcionalidad de los botones
+        document.addEventListener('DOMContentLoaded', () => {
+            const expressionTextarea = document.getElementById('expression');
+            const limitAInput = document.getElementById('limit-a'); // Límite inferior
+            const limitBInput = document.getElementById('limit-b'); // Límite superior
+            const solveBtn = document.getElementById('solve-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const printBtn = document.getElementById('print-btn');
+            const errorMessage = document.getElementById('error-message');
+
+            // --- Funcionalidad del botón Resolver ---
+            solveBtn.addEventListener('click', () => {
+                const expression = expressionTextarea.value.trim();
+                const limitA = limitAInput.value.trim();
+                const limitB = limitBInput.value.trim();
+
+                if (expression === '') {
+                    // Muestra un mensaje de error si el campo de expresión está vacío
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+                errorMessage.classList.add('hidden');
+
+                let prompt;
+                // Comprueba si se han proporcionado los límites para decidir el tipo de integral
+                if (limitA !== '' && limitB !== '') {
+                    // Prompt para integral definida
+                    prompt = `Calcula la integral definida paso a paso de ${expression} desde ${limitA} hasta ${limitB}`;
+                } else {
+                    // Prompt para integral indefinida
+                    prompt = `Calcula la integral indefinida paso a paso de: ${expression}`;
+                }
+                
+                // Codifica el prompt para que sea seguro en una URL
+                const encodedPrompt = encodeURIComponent(prompt);
+                
+                // Construye la URL y la abre en una nueva pestaña
+                const url = `https://copilot.microsoft.com/?q=${encodedPrompt}`;
+                window.open(url, '_blank');
+            });
+
+            // --- Funcionalidad del botón Limpiar ---
+            clearBtn.addEventListener('click', () => {
+                expressionTextarea.value = '';
+                limitAInput.value = ''; // Limpia también los campos de límite
+                limitBInput.value = '';
+                errorMessage.classList.add('hidden'); 
+                expressionTextarea.focus(); 
+            });
+
+            // --- Funcionalidad del botón Imprimir ---
+            printBtn.addEventListener('click', () => {
+                window.print();
+            });
+        });
+    </script>
+</body>
+</html>
