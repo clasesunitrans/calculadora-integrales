@@ -230,8 +230,11 @@
             });
 
             // --- Funcionalidad del botón Imprimir ---
-            printBtn.addEventListener('click', () => {
+            /* printBtn.addEventListener('click', () => {
                 window.print();
+            }); */
+            printBtn.addEventListener('click', () => {
+              window.open('IntegralsFormula-Reference-Sheet.pdf', '_blank');
             });
         });
     </script>
